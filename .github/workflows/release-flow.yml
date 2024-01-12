@@ -1,0 +1,46 @@
+# .github/workflows/release.yml
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    if: github.event.pull_request.merged
+    
+    steps:
+			- name: Compute next SemVer tag
+        id: semver
+        uses: K-Phoen/semver-release-action@master
+        with:
+          release_branch: main
+          release_strategy: none
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.base_ref }}
+
+      - name: Update changelog
+        uses: thomaseizinger/keep-a-changelog-new-release@v1
+        with:
+          tag: ${{ steps.semver.outputs.tag  }}
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Changelog ${{ steps.semver.outputs.tag }}
+          branch: main
+
+      - name: Create Release
+        uses: K-Phoen/semver-release-action@master
+        with:
+          release_branch: main
+          tag: ${{ steps.semver.outputs.tag }}
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
